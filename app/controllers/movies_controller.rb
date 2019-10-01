@@ -1,21 +1,16 @@
 class MoviesController < ApplicationController 
   
   # count the number of click and return the previous values
-  @@title_count = 0
-  @@date_count  = 0
+  @@count  = 0
   
   class << self
-    attr_accessor:title_count, :date_count
+    attr_accessor:count
   end
   
   def after_initialize 
-    MoviesController.title_count = 0
-    MoviesController.date_count = 0;
+    MoviesController.count = 0;
   end
   
-  
-
-
   def movie_params
     params.require(:movie).permit(:title, :rating, :description, :release_date)
   end
@@ -27,21 +22,29 @@ class MoviesController < ApplicationController
   end
   
   def index
-    @sort = params[:sort]
     
-    if params[:sort] == 'title' and MoviesController.title_count == 0
-      MoviesController.title_count = 1
-      MoviesController.date_count = 0
+    @sort = params[:sort]
+    @all_ratings = Movie.ratings
+    
+    #set up checked ratings
+    if params[:ratings]
+      @checked_ratings = params[:ratings].keys
+    else
+      @checked_ratings = @all_ratings
+    end
+    
+    #output movie list
+    @checked_movies = Movie.movie_with_ratings(@checked_ratings)
+    if params[:sort] == 'title' and MoviesController.count != 1
+      MoviesController.count = 1
       @movies = Movie.all.sort_by(&:title)
-    elsif params[:sort] == 'date' and MoviesController.date_count == 0
-      MoviesController.title_count = 0
-      MoviesController.date_count = 1
+    elsif params[:sort] == 'date' and MoviesController.count != -1
+      MoviesController.count = -1
       @movies = Movie.all.sort_by(&:release_date)
     else
       @sort = nil
-      MoviesController.title_count = 0
-      MoviesController.date_count = 0
-      @movies = Movie.all
+      MoviesController.count = 0
+      @movies = @checked_movies
     end
   end
 
