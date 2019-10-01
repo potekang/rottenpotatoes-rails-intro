@@ -22,32 +22,56 @@ class MoviesController < ApplicationController
   end
   
   def index
+      
+    # set session sort
+    @sort = params[:sort] || session[:sort]
+    if(params[:sort])
+      session[:sort] = params[:sort]
+    end
     
-    @sort = params[:sort]
+    #set up checked ratings & session[:ratings]
     @all_ratings = Movie.ratings
-    
-    #set up checked ratings
     if params[:ratings]
-      @checked_ratings = params[:ratings].keys
+      if(params[:ratings].is_a? Hash)
+        params[:ratings] = params[:ratings].keys
+      end
+      @checked_ratings = params[:ratings]
+      session[:ratings] = @checked_ratings
+    elsif session[:ratings]
+      @checked_ratings = session[:ratings]
     else
       @checked_ratings = @all_ratings
     end
+    session[:ratings] = @checked_ratings
+    
+    #@movies = Movie.movie_with_ratings(@checked_ratings).order(@sort)
     
     #output movie list
+    #trying to elemiate seconde click
     @checked_movies = Movie.movie_with_ratings(@checked_ratings)
-    if params[:sort] == 'title' and MoviesController.count != 1
-      MoviesController.count = 1
-      @movies = Movie.all.sort_by(&:title)
-    elsif params[:sort] == 'date' and MoviesController.count != -1
-      MoviesController.count = -1
-      @movies = Movie.all.sort_by(&:release_date)
-    else
-      @sort = nil
+    if params[:sort] == 'title' and MoviesController.count == 1 and params[:click]
+      @sort = ''
       MoviesController.count = 0
-      @movies = @checked_movies
+    elsif params[:sort] == 'release_date' and MoviesController.count == -1 and params[:click]
+      @sort = ''
+      MoviesController.count = 0
+    else
+      if @sort =='title'
+        MoviesController.count = 1
+      elsif @sort =='release_date'
+        MoviesController.count = -1
+      end
+    end
+    if params[:sort] != session[:sort] || params[:ratings] != session[:ratings]
+      params[:sort] = session[:sort]
+      params[:ratings] = session[:ratings]
+      flash.keep
+      redirect_to movies_path(:sort => session[:sort], :ratings => session[:ratings])
+    else
+      @movies = Movie.movie_with_ratings(@checked_ratings).order(@sort)
     end
   end
-
+  
   def new
     # default: render 'new' template
   end
